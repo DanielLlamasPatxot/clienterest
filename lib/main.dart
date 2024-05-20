@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:clienterest/login_page.dart';
+import 'package:clienterest/service.dart';
 import 'package:clienterest/yolo/upload_image.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -33,6 +34,8 @@ class _ApiRequestPageState extends State<ApiRequestPage> {
   // Método para verificar el token en SharedPreferences
   Future<bool> checkToken() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
+    // Pa pruebas ->
+    prefs.clear();
     String? token = prefs.getString('token');
     return token != null;
   }
@@ -50,23 +53,13 @@ class _ApiRequestPageState extends State<ApiRequestPage> {
 
   // Método para validar el token con la API
   Future<bool> validateToken(String token) async {
-    // Simulando una solicitud de validación de token
-    // Estoy simulando que la API devuelve un JSON con el campo "valid" true o false
-    /*
-    final response = await http.post(
-      Uri.parse('https://apiAuth/validate'),
-      body: {'token': token},
-    );
-    
-    
-    if (response.statusCode == 200) {
-      Map<String, dynamic> data = jsonDecode(response.body);
-      return data['valid'];
-    } else {
-      throw Exception('Failed to validate token');
+    var checker = await AuthService().checkingToken(token);
+
+    if(checker){
+      return true;
+    }else{
+      return false;
     }
-    */
-    return true;
   }
 
   @override

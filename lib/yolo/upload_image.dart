@@ -3,49 +3,80 @@ import 'dart:io';
 // ignore: unused_import
 import 'dart:ui' as ui;
 import 'dart:typed_data';
+import 'package:clienterest/service.dart';
 import 'package:clienterest/yolo/Detection.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'bounding_box_painter.dart';
 
 class UploadImageScreen extends StatefulWidget {
-  const UploadImageScreen({Key? key}) : super(key: key);
+  final String? token;
+
+  const UploadImageScreen({Key? key, this.token}) : super(key: key);
 
   @override
   _UploadImageScreenState createState() => _UploadImageScreenState();
 }
 
-//Clase que se encarga de subir imagenes a la API
-class _UploadImageScreenState extends State<UploadImageScreen> {
+  class _UploadImageScreenState extends State<UploadImageScreen> {
   File? image;
-  final _picker = ImagePicker();
-  //booleano que muestra el spinner de carga mientras se sube a la API
+  String? email;
   bool showSpinner = false;
   List<Detection> detections = [];
+  final ImagePicker _picker = ImagePicker();
 
-  //Método que recoge la imagen de la galería y la muestra por pantalla.
-  Future getImage() async {
-    final pickedFile =
-        await _picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+  @override
+  void initState() {
+    super.initState();
+    _initializeTokenAndEmail();
+  }
 
+  Future<void> _initializeTokenAndEmail() async {
+    // Obtener el token de SharedPreferences o del widget
+    String? token = widget.token;
+    if (token == null) {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      token = prefs.getString('token');
+    }
+
+    // Obtener el email usando el token
+    if (token != null) {
+      try {
+        String userEmail = await AuthService().whoami(token);
+        setState(() {
+          email = userEmail;
+        });
+      } catch (e) {
+        print('Error al obtener el email: $e');
+        // Manejar error, quizás redirigir al login
+      }
+    } else {
+      print('Token no disponible');
+      // Manejar el caso en que el token no esté disponible
+    }
+  }
+
+  Future<void> getImage() async {
+    final pickedFile = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
     if (pickedFile != null) {
-      image = File(pickedFile.path);
-      setState(() {});
+      setState(() {
+        image = File(pickedFile.path);
+      });
     } else {
       print('No ha seleccionado ninguna imagen');
     }
   }
 
-  // Método que toma la imagen que se muestra en pantalla y la sube a la API
   Future<void> uploadImage() async {
+    if (image == null) return;
     setState(() {
       showSpinner = true;
     });
 
     Uint8List bytes = await image!.readAsBytes();
-    //print(bytes.toString());
     var uri = Uri.parse('http://192.168.1.154:5001/procesarImg');
     var response = await http.post(uri, body: bytes);
     print(response.body);
@@ -55,20 +86,13 @@ class _UploadImageScreenState extends State<UploadImageScreen> {
       });
       print('Imagen subida correctamente');
 
-      // Convertir la respuesta de la API a una cadena JSON
       String responseBody = utf8.decode(response.bodyBytes);
-
-      // Parsear la cadena JSON a un mapa de tipo <String, dynamic>
       Map<String, dynamic> jsonResponse = jsonDecode(responseBody);
-
-      // Extraigo 'Detections' del JSON
       Map<String, dynamic> detectionsJson = jsonResponse['Detections'];
-
-      // Convertir el 'Detections' a la clase creada por mi
       Detection detection = Detection.fromJson(detectionsJson);
-
-      // Añado a la lista
-      detections.add(detection);
+      setState(() {
+        detections.add(detection);
+      });
     } else {
       print('Fallo en la subida');
       setState(() {
@@ -84,13 +108,30 @@ class _UploadImageScreenState extends State<UploadImageScreen> {
       child: Scaffold(
         appBar: AppBar(
           title: Text('Subir imagen'),
+          actions: [
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Center(
+                child: email != null
+                    ? Text(
+                        email!,
+                        style: TextStyle(fontSize: 16),
+                      )
+                    : CircularProgressIndicator(),
+              ),
+            ),
+            IconButton(
+              icon: Icon(Icons.logout),
+              onPressed: () {
+                logout();
+              },
+            ),
+          ],
         ),
         body: SingleChildScrollView(
           child: Center(
-            // Alinea la columna al centro
             child: Column(
-              mainAxisAlignment: MainAxisAlignment
-                  .center, // Alinea los elementos al centro verticalmente
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 GestureDetector(
                   onTap: () {
@@ -130,16 +171,13 @@ class _UploadImageScreenState extends State<UploadImageScreen> {
                     width: 800,
                     child: Stack(
                       children: [
-                        // Mostrar la imagen
                         Image.file(
                           File(image!.path).absolute,
                           height: 800,
                           width: 800,
                           fit: BoxFit.cover,
                         ),
-                        // Dibujar detecciones sobre la imagen
                         CustomPaint(
-                          //Ajusto aquí al mismo tamaño que el container para que no descuadren
                           size: Size.square(800),
                           painter: BoundingBoxPainter(detections),
                         ),
@@ -152,5 +190,9 @@ class _UploadImageScreenState extends State<UploadImageScreen> {
         ),
       ),
     );
+  }
+
+  void logout() {
+    // TODO logout
   }
 }

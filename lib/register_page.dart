@@ -3,35 +3,33 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'service.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'register_page.dart';
 
-class LoginPage extends StatelessWidget {
+class RegisterPage extends StatelessWidget {
   final AuthService _authService = AuthService();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Login'),
+        title: Text('Register'),
       ),
-      body: LoginForm(authService: _authService),
+      body: RegisterForm(authService: _authService),
     );
   }
 }
 
-class LoginForm extends StatefulWidget {
+class RegisterForm extends StatefulWidget {
   final AuthService authService;
 
-  LoginForm({required this.authService});
+  RegisterForm({required this.authService});
 
   @override
-  _LoginFormState createState() => _LoginFormState();
+  _RegisterFormState createState() => _RegisterFormState();
 }
 
-class _LoginFormState extends State<LoginForm> {
+class _RegisterFormState extends State<RegisterForm> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-
   bool isPasswordCompliant(String password, [int minLength = 8]) {
     if (password == '' || password.length < minLength) {
       return false;
@@ -79,21 +77,22 @@ class _LoginFormState extends State<LoginForm> {
             onPressed: () async {
               final String? email = _emailController.text;
               final String? password = _passwordController.text;
-              if (_emailController.text != '' && _passwordController.text != '') {
+              if (_emailController.text != '' &&
+                  _passwordController.text != '') {
                 final bool _emailValid = RegExp(
                         r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+")
                     .hasMatch(email!);
                 final bool _passValid = isPasswordCompliant(password!, 8);
                 if (_emailValid && _passValid) {
                   // Esto es para probar
-                  String? token = await widget.authService.login(email, password);
+                  var token = await widget.authService.register(email, password);
                   if (token != '') {
                     SharedPreferences prefs = await SharedPreferences.getInstance();
                     prefs.setString('token', token!);
-                    print("Soy el token del login: $token");
+                    print("Soy el token del registro: $token");
                     Navigator.pushReplacement(
                       context,
-                      MaterialPageRoute(builder: (context) => UploadImageScreen(token: token)),
+                      MaterialPageRoute(builder: (context) => UploadImageScreen()),
                     );
                   } else {
                     // Manejar error de inicio de sesión aquí
@@ -101,7 +100,8 @@ class _LoginFormState extends State<LoginForm> {
                   }
                 } else {
                   Fluttertoast.showToast(
-                      msg: "El correo o contraseña no cumple los estandares minimos",
+                      msg:
+                          "El correo o contraseña no cumple los estandares minimos",
                       toastLength: Toast.LENGTH_SHORT,
                       gravity: ToastGravity.BOTTOM,
                       timeInSecForIosWeb: 1,
@@ -122,29 +122,7 @@ class _LoginFormState extends State<LoginForm> {
                     fontSize: 16.0);
               }
             },
-            child: const Text('Login'),
-          ),
-          const SizedBox(height: 20.0),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text("¿No estás registrado?"),
-              GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => RegisterPage()),
-                  );
-                },
-                child: Text(
-                  " Pulsa aquí",
-                  style: TextStyle(
-                    color: Colors.blue,
-                    decoration: TextDecoration.underline,
-                  ),
-                ),
-              ),
-            ],
+            child: const Text('Register'),
           ),
         ],
       ),
