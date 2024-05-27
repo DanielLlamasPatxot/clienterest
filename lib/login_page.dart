@@ -87,6 +87,7 @@ class _LoginFormState extends State<LoginForm> {
                 if (_emailValid && _passValid) {
                   // Esto es para probar
                   String? token = await widget.authService.login(email, password);
+                  //widget.authService.checkPerms();
                   if (token != '') {
                     SharedPreferences prefs = await SharedPreferences.getInstance();
                     prefs.setString('token', token!);

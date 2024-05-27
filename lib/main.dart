@@ -19,6 +19,7 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
       ),
       home: ApiRequestPage(),
+      routes:{'/login': (context) => LoginPage()}
     );
   }
 }
@@ -30,13 +31,13 @@ class ApiRequestPage extends StatefulWidget {
 
 class _ApiRequestPageState extends State<ApiRequestPage> {
   bool isLoading = false;
-
+  var token; 
   // Método para verificar el token en SharedPreferences
   Future<bool> checkToken() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     // Pa pruebas ->
     prefs.clear();
-    String? token = prefs.getString('token');
+    token = prefs.getString('token');
     return token != null;
   }
 
@@ -68,9 +69,9 @@ class _ApiRequestPageState extends State<ApiRequestPage> {
     //Limpio el token para las pruebas
     //clearPrefs();
     // Verificar si el token existe al iniciar la página
+
     checkToken().then((tokenExists) {
       if (tokenExists) {
-        // Si el token existe, validarlo
         setState(() {
           isLoading = true;
         });

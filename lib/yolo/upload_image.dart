@@ -24,6 +24,7 @@ class UploadImageScreen extends StatefulWidget {
   class _UploadImageScreenState extends State<UploadImageScreen> {
   File? image;
   String? email;
+  String? token;
   bool showSpinner = false;
   List<Detection> detections = [];
   final ImagePicker _picker = ImagePicker();
@@ -34,18 +35,32 @@ class UploadImageScreen extends StatefulWidget {
     _initializeTokenAndEmail();
   }
 
+  Future<void> logout() async {
+    var resp = await AuthService().logout(token!);
+
+    if(resp){
+      SharedPreferences sp = await SharedPreferences.getInstance();
+      sp.clear();
+      Navigator.pushReplacementNamed(context, '/login');
+
+    }else{
+      print("ERROR");
+    }
+  }
   Future<void> _initializeTokenAndEmail() async {
     // Obtener el token de SharedPreferences o del widget
-    String? token = widget.token;
+    token = widget.token;
     if (token == null) {
       SharedPreferences prefs = await SharedPreferences.getInstance();
       token = prefs.getString('token');
+      Navigator.pushReplacementNamed(context, '/login');
+
     }
 
     // Obtener el email usando el token
     if (token != null) {
       try {
-        String userEmail = await AuthService().whoami(token);
+        String? userEmail = await AuthService().whoami(token!);
         setState(() {
           email = userEmail;
         });
@@ -192,7 +207,5 @@ class UploadImageScreen extends StatefulWidget {
     );
   }
 
-  void logout() {
-    // TODO logout
-  }
+  
 }
